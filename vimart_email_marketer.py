@@ -1,9 +1,15 @@
+# Copyright (c) <2021>, <Zigiziggi>
+# All rights reserved.
+#
+# This source code is licensed under the GPL v.3.0 license found in the
+# LICENSE file in the root directory of this source tree.
+
 import getpass
 import imaplib
-import email
-from email.header import decode_header
+
+
 import os
-import codecs
+
 from time import sleep
 
 di = {}
@@ -41,7 +47,7 @@ def send_mail():
     import time
 
     while True:
-        file = input('Enter file name containing text you want to send.\n>>> ')
+        file = input('Enter file.txt name containing text you want to send.\n>>> ')
         o = os.getcwd()
         if os.path.isfile(o + '//' + file) is True:
             break
@@ -98,12 +104,13 @@ def load_data():
 def file_load():
     print('load')
     while True:
-        file = input('Enter file name containing email addresses.\n>>> ')
+        file = input('Enter file name containing text you want to send.\n>>> ')
         o = os.getcwd()
         if os.path.isfile(o + '//' + file) is True:
             break
-        print(f' There\'s no a file named: " {file}" in your directory\n Try again')
-    with open(file, 'r')as f:
+        print(f' There\'s no a {file} in your directory\n Try again')
+
+    with open(file,'r')as f:
         read = f.readlines()
     for i in read:
         if i == '\n':
@@ -137,8 +144,6 @@ def mai_load():
             u = input('Enter the email.\n>>>')
             p = input('Enter the password.\n>>>')
             if len(u) > 0 and '@' in u and len(p) > 5:
-                #True
-
                 return u, p
             else:
                 print('Enter correct Email and Password')
@@ -167,49 +172,46 @@ def mai_load():
 
     mail.select()
 
-    status, messages = mail.select("INBOX")
-    print(messages)
+    mail.select('INBOX')
 
-    # number of top emails to fetch
-    n = 199
+    typ, data = mail.uid('search', None, 'Unseen')
+    id_mail = data[0].split()
 
-    # total number of emails
-    messages = int(messages[0])
-    print(messages)
+    for ui in id_mail:
+        result, data = mail.uid('fetch', ui, '(RFC822)')
+        print(data)
+        x = data[0]
+        x = str(x)
+        k = x.find('From')
+        # k  = x.find('smtp.mailfrom=')
+        pos = k
+        p = x.index(':', pos)
+        w = x.index('\\r', pos)
+        fro = x[p + 1: w]
+        print("From:", fro)
+        print("=" * 100)
+        if '@' not in fro:
+            continue
+        else:
+            if '<' in fro:
+                s = fro.index('<')
+                d = fro.index('>')
+                q = fro[s + 1:d]
+                w = fro[0:s - 1]
 
-    #for i in messages[0]:
-    for i in range(messages, messages-n,-1):
-        # fetch the email message by ID
-        res, msg = mail.fetch(str(i), "(RFC822)")
-        for response in msg:
-            if isinstance(response, tuple):
-                # parse a bytes email into a message object
-                msg = email.message_from_bytes(response[1])
-
-                fro, encoding = decode_header(msg.get("From"))[0]
-                if isinstance(fro, bytes):
-                    fro = fro.decode(encoding)
-                print("From:", fro)
-                print("=" * 100)
-                if '@' not in fro:
-                    continue
-                else:
-                    if '<' in fro:
-                        s = fro.index('<')
-                        d = fro.index('>')
-                        q = fro[s + 1:d]
-                        w = fro[0:s - 1]
-
-                        if q not in di.values():
-                            di[w] = q
-                    else:
-                        b = sum(1 for key in di if key.startswith('Friend'))
-                        if fro not in di.values():
-                            di[f'Friend{b + 1}'] = fro
-                            b += 1
+                if q not in di.values():
+                    di[w] = q
+            else:
+                b = sum(1 for key in di if key.startswith('Friend'))
+                if fro not in di.values():
+                    di[f'Friend{b + 1}'] = fro
+                    b += 1
     # close the connection and logout
+
     mail.close()
     mail.logout()
+
+    print(di)
 
     return u, p
 
@@ -223,7 +225,7 @@ def save_json():
 
     file_name = input('Input file name: ')
     json = json.dumps(di)
-    f = open(file_name + ".json", "w")
+    f = open(file_name + ".json", "a")
     f.write(json)
     f.close()
 
